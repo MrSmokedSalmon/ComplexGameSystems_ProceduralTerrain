@@ -3,27 +3,31 @@ using UnityEngine;
 
 public static class MeshGen
 {
-    public static MeshData GenerateTerrainMesh(float[,] heightMap, float scale, float waterLevel = 0.4f)
+    public static MeshData GenerateTerrainMesh(float[,] heightMap, float scale, AnimationCurve _heightCurve, int LOD)
     {
+        AnimationCurve heightCurve = new AnimationCurve(_heightCurve.keys);
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
         float topLeftX = (width - 1) / -2f;
         float topLeftZ = (height - 1) / 2f;
+
+        int simplificationIncrement = (LOD == 0 ? 1 : LOD * 2);
+        int vertsPerLine = (width - 1) / simplificationIncrement + 1;
         
-        MeshData meshData = new MeshData(width, height);
+        MeshData meshData = new MeshData(vertsPerLine, vertsPerLine);
         int vertexIndex = 0;
 
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y += simplificationIncrement)
+            for (int x = 0; x < width; x += simplificationIncrement)
             {
                 meshData.verticies[vertexIndex] = new Vector3(topLeftX + x, 
-                    (heightMap[x, y] > waterLevel? heightMap[x,y] : waterLevel) * scale, topLeftZ - y);
+                    heightCurve.Evaluate(heightMap[x,y]) * scale, topLeftZ - y);
                 meshData.uvs[vertexIndex] = new Vector2(x / (float)width, y / (float)height);
                 
                 if (x < width - 1 && y < height - 1)
                 {
-                    meshData.AddTriangle(vertexIndex, vertexIndex + width + 1, vertexIndex + width);
-                    meshData.AddTriangle(vertexIndex + width + 1, vertexIndex, vertexIndex + 1);
+                    meshData.AddTriangle(vertexIndex, vertexIndex + vertsPerLine + 1, vertexIndex + vertsPerLine);
+                    meshData.AddTriangle(vertexIndex + vertsPerLine + 1, vertexIndex, vertexIndex + 1);
                 }
                 
                 vertexIndex++;

@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UIElements;
 
 public class HeightMapGen : MonoBehaviour
 {
@@ -8,73 +12,177 @@ public class HeightMapGen : MonoBehaviour
         NosieMap,
         ColourMap,
         BiomeMap,
+        HeatMap,
+        HumidityMap,
+        HeightMask,
         Mesh
     };
 
     public DrawMode drawMode;
-    
-    [Min(1)]public int mapWidth;
-    [Min(1)]public int mapHeight;
-    [Min(0.00001f)]public float scale;
+
+    public const int mapChunkSize = 241;
+    [Range(0,6)]public int levelOfDetail;
+    [Min(0.001f)]public float scale;
     [Min(1)]public int octaves;
     [Range(-1, 2)]public float persistance;
     [Range(-2, 5)]public float lacunarity;
     public int seed;
     public Vector2 offset;
-    public float heightScale;
     
+    public float heightMulti;
+    public AnimationCurve heightCurve;
+
+    public bool autoUpdate;
     
     public TerrainTypes[] regions;
     public BiomeTypes[] biomes;
-    
-    public void GenerateMap()
-    {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, seed, scale, octaves, persistance, lacunarity, offset);
 
-        Color[] colorMap = new Color[mapWidth * mapHeight];
+    private Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
+    private Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+
+    public void RequestMapData(Action<MapData> callback)
+    {
+        ThreadStart threadStart = delegate
+        {
+            MapDataThread(callback);
+        };
         
-        for (int y = 0; y < mapHeight; y++)
-            for (int x = 0; x < mapWidth; x++)
+        new Thread(threadStart).Start();
+    }
+
+    private void MapDataThread(Action<MapData> callback)
+    {
+        MapData mapData = GenerateMapData();
+        lock (mapDataThreadInfoQueue)
+        {
+            mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
+        }
+    }
+
+    public void RequestMeshData(MapData mapData, Action<MeshData> callback)
+    {
+        ThreadStart threadStart = delegate
+        {
+            MeshDataThread(mapData, callback);
+        };
+
+        new Thread(threadStart).Start();
+    }
+
+    private void MeshDataThread(MapData mapData, Action<MeshData> callback)
+    {
+        MeshData meshData = MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetail);
+        lock (meshDataThreadInfoQueue)
+        {
+            meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshData>(callback, meshData));
+        }
+    }
+
+    private void Update()
+    {
+        if (mapDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < mapDataThreadInfoQueue.Count; i++)
             {
+                MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
+        if (meshDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
+            {
+                MapThreadInfo<MeshData> threadInfo = meshDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
+    }
+
+    private MapData GenerateMapData()
+    {
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, scale, octaves, persistance, lacunarity, offset);
+        float[,] heightMask = GenerateHeightMask();
+        
+        Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
+        Color[] biomeMap = new Color[mapChunkSize * mapChunkSize];
+        
+        for (int y = 0; y < mapChunkSize; y++)
+            for (int x = 0; x < mapChunkSize; x++)
+            {
+                //noiseMap[x, y] *= heightMask[x, y];
                 float currentHeight = noiseMap[x, y];
 
                 for (int i = 0; i < regions.Length; i++)
                     if (currentHeight <= regions[i].height)
                     {
-                        colorMap[y * mapWidth + x] = regions[i].color;
+                        colorMap[y * mapChunkSize + x] = regions[i].color;
+                        break;
+                    }
+                for (int i = 0; i < biomes.Length; i++)
+                    if (currentHeight <= biomes[i].value)
+                    {
+                        biomeMap[y * mapChunkSize + x] = biomes[i].color;
                         break;
                     }
             }
 
+        return new MapData(noiseMap, colorMap);
+    }
+
+    public void DrawMapInEditor()
+    {
+        MapData mapData = GenerateMapData();
+        
         MapDisplay display = FindObjectOfType<MapDisplay>();
         
         if (drawMode == DrawMode.NosieMap)
-            display.DrawTexture(TextureGen.TextureFromHeightMap(noiseMap));
+            display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap));
         else if (drawMode == DrawMode.ColourMap)
-            display.DrawTexture(TextureGen.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+            display.DrawTexture(TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
+        //else if (drawMode == DrawMode.BiomeMap)
+        //    display.DrawTexture(TextureGen.TextureFromColorMap(biomeMap, mapChunkSize, mapChunkSize));
+        else if (drawMode == DrawMode.HeatMap)
+            display.DrawTexture(TextureGen.TextureFromHeightMap(GenerateHeatMap()));
+        else if (drawMode == DrawMode.HumidityMap)
+            display.DrawTexture(TextureGen.TextureFromHeightMap(GenerateHumidityMap()));
+        else if (drawMode == DrawMode.HeightMask)
+            display.DrawTexture(TextureGen.TextureFromHeightMap(GenerateHeightMask()));
         else if (drawMode == DrawMode.Mesh)
-            display.DrawMesh(MeshGen.GenerateTerrainMesh(noiseMap, heightScale, regions[0].height),
-                TextureGen.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetail),
+                TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
+    }
+    
+    public float[,] GenerateHeatMap()
+    {
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed + 729371) / 2, 
+            scale, octaves, persistance, lacunarity, offset);
+        return noiseMap;
     }
 
-    public void GenerateBiomes()
+    public float[,] GenerateHumidityMap()
     {
-        Color[] colors = new Color[mapWidth * mapHeight];
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, seed, scale, octaves, persistance, lacunarity, offset);
-        for (int y = 0; y < mapHeight; y++)
-            for (int x = 0; x < mapWidth; x++)
-            {
-                Color biomeColor = biomes[0].color;
-                for (int i = 0; i < biomes.Length; i++)
-                {
-                    if (noiseMap[x, y] > biomes[i].value)
-                    {
-                        colors[y * mapWidth + x] = biomeColor;
-                        break;
-                    }
-                }
-            }
-        
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed + 12147543) / 4, 
+            scale, octaves, persistance, lacunarity, offset);
+        return noiseMap;
+    }
+    
+    public float[,] GenerateHeightMask()
+    {
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed - 6381) / 8, 
+            scale * 10, octaves, persistance, lacunarity, offset);
+        return noiseMap;
+    }
+
+    struct MapThreadInfo<T>
+    {
+        public readonly Action<T> callback;
+        public readonly T parameter;
+
+        public MapThreadInfo(Action<T> _callback, T _parameter)
+        {
+            callback = _callback;
+            parameter = _parameter;
+        }
     }
 }
 [Serializable]
@@ -90,4 +198,16 @@ public struct BiomeTypes
     public float value;
     public Color color;
     public string name;
+}
+
+public struct MapData
+{
+    public readonly float[,] heightMap;
+    public readonly Color[] colorMap;
+
+    public MapData(float[,] _heightMap, Color[] _colorMap)
+    {
+        heightMap = _heightMap;
+        colorMap = _colorMap;
+    }
 }

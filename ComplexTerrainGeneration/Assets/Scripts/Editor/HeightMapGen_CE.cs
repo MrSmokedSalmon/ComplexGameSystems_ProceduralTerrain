@@ -9,11 +9,13 @@ namespace Editor
         public override void OnInspectorGUI()
         {
             HeightMapGen gen = (HeightMapGen)target;
-            DrawDefaultInspector();
+            if (DrawDefaultInspector())
+                if (gen.autoUpdate)
+                    gen.DrawMapInEditor();
 
             if (GUILayout.Button("Generate"))
             {
-                gen.GenerateMap();
+                gen.DrawMapInEditor();
             }
         }
     }
