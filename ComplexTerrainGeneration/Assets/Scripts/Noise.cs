@@ -1,9 +1,13 @@
 using TreeEditor;
 using UnityEngine;
 
+
 public static class Noise
 {
-    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistance, float lacunarity, Vector2 offset)
+    private const float symmetryOffsetX = 100000f;
+    private const float symmetryOffsetY = 100000f;
+    
+    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistance, float lacunarity, Vector2 octaveOffset, Vector2 offest)
     {
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
@@ -12,8 +16,8 @@ public static class Noise
 
         for (int i = 0; i < octaves; i++)
         {
-            float offsetX = prng.Next(-100000, 100000) + offset.x;
-            float offsetY = prng.Next(-100000, 100000) + offset.y;
+            float offsetX = prng.Next(-100000, 100000) + octaveOffset.x;
+            float offsetY = prng.Next(-100000, 100000) + octaveOffset.y;
             octaveOffsets[i] = new Vector2(offsetX, offsetY);
         }
         
@@ -31,10 +35,13 @@ public static class Noise
                 float noiseHeight = 0;
                 for (int i = 0; i < octaves; i++)
                 {
-                    float sampleX = x / scale * frequency + octaveOffsets[i].x;
-                    float sampleY = y / scale * frequency + octaveOffsets[i].y;
+                    float sampleX = (x + symmetryOffsetX + offest.x) / scale * frequency + octaveOffsets[i].x;
+                    float sampleY = (y + symmetryOffsetY + offest.y) / scale * frequency + octaveOffsets[i].y;
 
-                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2 - 1;
+                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);
+                    if(perlinValue < 0f)
+                        sampleX++;
+                    perlinValue = perlinValue * 2 - 1;
                     noiseHeight += perlinValue * amplitude;
 
                     amplitude *= persistance;

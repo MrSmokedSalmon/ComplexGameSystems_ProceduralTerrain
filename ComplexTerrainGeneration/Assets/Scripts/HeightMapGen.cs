@@ -27,7 +27,8 @@ public class HeightMapGen : MonoBehaviour
     [Range(-1, 2)]public float persistance;
     [Range(-2, 5)]public float lacunarity;
     public int seed;
-    public Vector2 offset;
+    public Vector2 octaveOffset;
+    public Vector2 positionOffset;
     
     public float heightMulti;
     public AnimationCurve heightCurve;
@@ -100,7 +101,7 @@ public class HeightMapGen : MonoBehaviour
 
     private MapData GenerateMapData()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, scale, octaves, persistance, lacunarity, offset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, scale, octaves, persistance, lacunarity, octaveOffset, positionOffset);
         float[,] heightMask = GenerateHeightMask();
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
@@ -155,21 +156,21 @@ public class HeightMapGen : MonoBehaviour
     public float[,] GenerateHeatMap()
     {
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed + 729371) / 2, 
-            scale, octaves, persistance, lacunarity, offset);
+            scale, octaves, persistance, lacunarity, octaveOffset, positionOffset);
         return noiseMap;
     }
 
     public float[,] GenerateHumidityMap()
     {
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed + 12147543) / 4, 
-            scale, octaves, persistance, lacunarity, offset);
+            scale, octaves, persistance, lacunarity, octaveOffset, positionOffset);
         return noiseMap;
     }
     
     public float[,] GenerateHeightMask()
     {
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed - 6381) / 8, 
-            scale * 10, octaves, persistance, lacunarity, offset);
+            scale * 10, octaves, persistance, lacunarity, octaveOffset, positionOffset);
         return noiseMap;
     }
 
