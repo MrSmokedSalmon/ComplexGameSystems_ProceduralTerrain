@@ -20,8 +20,11 @@ public static class MeshGen
         for (int y = 0; y < height; y += simplificationIncrement)
             for (int x = 0; x < width; x += simplificationIncrement)
             {
-                meshData.verticies[vertexIndex] = new Vector3(topLeftX + x, 
-                    heightCurve.Evaluate(heightMap[x,y]) * scale, topLeftZ - y);
+                meshData.verticies[vertexIndex] = new Vector3(
+                    topLeftX + x, 
+                    heightCurve.Evaluate(heightMap[x,y]) * scale, 
+                    topLeftZ - y);
+                
                 meshData.uvs[vertexIndex] = new Vector2(x / (float)width, y / (float)height);
                 
                 if (x < width - 1 && y < height - 1)

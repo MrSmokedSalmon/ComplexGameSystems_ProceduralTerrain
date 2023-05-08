@@ -2,6 +2,7 @@ using TreeEditor;
 using UnityEngine;
 
 
+
 public static class Noise
 {
     private const float symmetryOffsetX = 100000f;
@@ -33,10 +34,17 @@ public static class Noise
                 float amplitude = 1.0f;
                 float frequency = 1.0f;
                 float noiseHeight = 0;
+                
+                //float sampleX = (x + offest.x) / scale;
+                //float sampleY = (y + offest.y) / scale;
+                //
+                //float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);
+                //noiseHeight += perlinValue;
+                
                 for (int i = 0; i < octaves; i++)
                 {
-                    float sampleX = (x + symmetryOffsetX + offest.x) / scale * frequency + octaveOffsets[i].x;
-                    float sampleY = (y + symmetryOffsetY + offest.y) / scale * frequency + octaveOffsets[i].y;
+                    float sampleX = (x + symmetryOffsetX + offest.y) / scale * frequency + octaveOffsets[i].x;
+                    float sampleY = (y + symmetryOffsetY + offest.x) / scale * frequency + octaveOffsets[i].y;
 
                     float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);
                     if(perlinValue < 0f)
@@ -52,13 +60,13 @@ public static class Noise
                     maxNoiseHeight = noiseHeight;
                 else if (noiseHeight < minNoiseHeight)
                     minNoiseHeight = noiseHeight;
-                noiseMap[x, y] = noiseHeight;
+                noiseMap[y, x] = noiseHeight;
             }
 
         for (int y = 0; y < mapHeight; y++)
             for (int x = 0; x < mapWidth; x++)
-                noiseMap[x, y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, y]);
-        
+                noiseMap[y, x] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y, x]);
+
         return noiseMap;
     }
 }

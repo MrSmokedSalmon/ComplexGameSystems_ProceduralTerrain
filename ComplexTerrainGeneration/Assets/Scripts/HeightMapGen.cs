@@ -20,7 +20,7 @@ public class HeightMapGen : MonoBehaviour
 
     public DrawMode drawMode;
 
-    public const int mapChunkSize = 241;
+    public const int mapChunkSize = 129;
     [Range(0,6)]public int levelOfDetailEditor;
     [Min(0.001f)]public float scale;
     [Min(1)]public int octaves;
@@ -32,7 +32,7 @@ public class HeightMapGen : MonoBehaviour
     
     public float heightMulti;
     public AnimationCurve heightCurve;
-
+    
     public bool autoUpdate;
     
     public TerrainTypes[] regions;
@@ -81,28 +81,28 @@ public class HeightMapGen : MonoBehaviour
 
     private void Update()
     {
-        if (mapDataThreadInfoQueue.Count > 0)
-        {
-            for (int i = 0; i < mapDataThreadInfoQueue.Count; i++)
-            {
-                MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
-                threadInfo.callback(threadInfo.parameter);
-            }
-        }
-        if (meshDataThreadInfoQueue.Count > 0)
-        {
-            for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
-            {
-                MapThreadInfo<MeshData> threadInfo = meshDataThreadInfoQueue.Dequeue();
-                threadInfo.callback(threadInfo.parameter);
-            }
-        }
+        //if (mapDataThreadInfoQueue.Count > 0)
+        //{
+        //    for (int i = 0; i < mapDataThreadInfoQueue.Count; i++)
+        //    {
+        //        MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
+        //        threadInfo.callback(threadInfo.parameter);
+        //    }
+        //}
+        //if (meshDataThreadInfoQueue.Count > 0)
+        //{
+        //    for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
+        //    {
+        //        MapThreadInfo<MeshData> threadInfo = meshDataThreadInfoQueue.Dequeue();
+        //        threadInfo.callback(threadInfo.parameter);
+        //    }
+        //}
     }
 
     private MapData GenerateMapData()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, scale, octaves, persistance, lacunarity, octaveOffset, positionOffset);
-        float[,] heightMask = GenerateHeightMask();
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, scale, octaves, 
+            persistance, lacunarity, octaveOffset, this.transform.position);
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
         Color[] biomeMap = new Color[mapChunkSize * mapChunkSize];
@@ -134,7 +134,7 @@ public class HeightMapGen : MonoBehaviour
     {
         MapData mapData = GenerateMapData();
         
-        MapDisplay display = FindObjectOfType<MapDisplay>();
+        MapDisplay display = GetComponent<MapDisplay>();
         
         if (drawMode == DrawMode.NosieMap)
             display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap));
