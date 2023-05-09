@@ -35,7 +35,7 @@ public class HeightMapGen : MonoBehaviour
     
     public bool autoUpdate;
     public bool usePositionAsOffset;
-    
+
     public TerrainTypes[] regions;
     public BiomeTypes[] biomes;
 
@@ -44,17 +44,19 @@ public class HeightMapGen : MonoBehaviour
 
     public void RequestMapData(Action<MapData> callback)
     {
+        Vector2 position = new Vector2(transform.position.x, transform.position.z);
+        
         ThreadStart threadStart = delegate
         {
-            MapDataThread(callback);
+            MapDataThread(callback, position);
         };
         
         new Thread(threadStart).Start();
     }
 
-    private void MapDataThread(Action<MapData> callback)
+    private void MapDataThread(Action<MapData> callback, Vector2 position)
     {
-        MapData mapData = GenerateMapData();
+        MapData mapData = GenerateMapData(position);
         lock (mapDataThreadInfoQueue)
         {
             mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
@@ -100,10 +102,10 @@ public class HeightMapGen : MonoBehaviour
         }
     }
 
-    private MapData GenerateMapData()
+    private MapData GenerateMapData(Vector2 _position)
     {
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
-            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
+            octaveOffset, usePositionAsOffset ? _position : positionOffset, 
             octaves, persistance, lacunarity, seed);
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
@@ -134,7 +136,7 @@ public class HeightMapGen : MonoBehaviour
 
     public void DrawMapInEditor()
     {
-        MapData mapData = GenerateMapData();
+        MapData mapData = GenerateMapData(new Vector2(transform.position.x, transform.position.z));
         
         MapDisplay display = GetComponent<MapDisplay>();
         
