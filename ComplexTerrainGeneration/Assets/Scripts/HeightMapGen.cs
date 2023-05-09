@@ -34,6 +34,7 @@ public class HeightMapGen : MonoBehaviour
     public AnimationCurve heightCurve;
     
     public bool autoUpdate;
+    public bool usePositionAsOffset;
     
     public TerrainTypes[] regions;
     public BiomeTypes[] biomes;
@@ -81,28 +82,29 @@ public class HeightMapGen : MonoBehaviour
 
     private void Update()
     {
-        //if (mapDataThreadInfoQueue.Count > 0)
-        //{
-        //    for (int i = 0; i < mapDataThreadInfoQueue.Count; i++)
-        //    {
-        //        MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
-        //        threadInfo.callback(threadInfo.parameter);
-        //    }
-        //}
-        //if (meshDataThreadInfoQueue.Count > 0)
-        //{
-        //    for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
-        //    {
-        //        MapThreadInfo<MeshData> threadInfo = meshDataThreadInfoQueue.Dequeue();
-        //        threadInfo.callback(threadInfo.parameter);
-        //    }
-        //}
+        if (mapDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < mapDataThreadInfoQueue.Count; i++)
+            {
+                MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
+        if (meshDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
+            {
+                MapThreadInfo<MeshData> threadInfo = meshDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
     }
 
     private MapData GenerateMapData()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, scale, octaves, 
-            persistance, lacunarity, octaveOffset, this.transform.position);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
+            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
+            octaves, persistance, lacunarity, seed);
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
         Color[] biomeMap = new Color[mapChunkSize * mapChunkSize];
@@ -155,22 +157,25 @@ public class HeightMapGen : MonoBehaviour
     
     public float[,] GenerateHeatMap()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed + 729371) / 2, 
-            scale, octaves, persistance, lacunarity, octaveOffset, positionOffset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
+            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
+            octaves, persistance, lacunarity, seed);
         return noiseMap;
     }
 
     public float[,] GenerateHumidityMap()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed + 12147543) / 4, 
-            scale, octaves, persistance, lacunarity, octaveOffset, positionOffset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
+            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
+            octaves, persistance, lacunarity, seed);
         return noiseMap;
     }
     
     public float[,] GenerateHeightMask()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, (seed - 6381) / 8, 
-            scale * 10, octaves, persistance, lacunarity, octaveOffset, positionOffset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
+            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
+            octaves, persistance, lacunarity, seed);
         return noiseMap;
     }
 

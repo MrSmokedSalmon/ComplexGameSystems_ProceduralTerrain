@@ -8,7 +8,8 @@ public static class Noise
     private const float symmetryOffsetX = 100000f;
     private const float symmetryOffsetY = 100000f;
     
-    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistance, float lacunarity, Vector2 octaveOffset, Vector2 offest)
+    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float scale, Vector2 octaveOffset, 
+        Vector2 offest, int octaves, float persistance, float lacunarity, int seed)
     {
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
@@ -25,22 +26,15 @@ public static class Noise
         if (scale <= 0)
             scale = 0.00001f;
 
-        float maxNoiseHeight = float.MinValue;
-        float minNoiseHeight = float.MaxValue;
-        
         for (int y = 0; y < mapHeight; y++)
             for (int x = 0; x < mapWidth; x++)
             {
+                // Intiating noise values for this coordinate
                 float amplitude = 1.0f;
                 float frequency = 1.0f;
                 float noiseHeight = 0;
-                
-                //float sampleX = (x + offest.x) / scale;
-                //float sampleY = (y + offest.y) / scale;
-                //
-                //float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);
-                //noiseHeight += perlinValue;
-                
+
+                // Loop through 
                 for (int i = 0; i < octaves; i++)
                 {
                     float sampleX = (x + symmetryOffsetX + offest.y) / scale * frequency + octaveOffsets[i].x;
@@ -55,17 +49,9 @@ public static class Noise
                     amplitude *= persistance;
                     frequency *= lacunarity;
                 }
-
-                if (noiseHeight > maxNoiseHeight)
-                    maxNoiseHeight = noiseHeight;
-                else if (noiseHeight < minNoiseHeight)
-                    minNoiseHeight = noiseHeight;
+                
                 noiseMap[y, x] = noiseHeight;
             }
-
-        for (int y = 0; y < mapHeight; y++)
-            for (int x = 0; x < mapWidth; x++)
-                noiseMap[y, x] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y, x]);
 
         return noiseMap;
     }
