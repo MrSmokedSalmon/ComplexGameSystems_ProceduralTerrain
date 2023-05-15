@@ -31,6 +31,7 @@ public class HeightMapGen : MonoBehaviour
     
     public float heightMulti;
     public AnimationCurve heightCurve;
+    public AnimationCurve moistureCurve;
 
     public bool autoUpdate;
     public bool usePositionAsOffset;
@@ -134,41 +135,10 @@ public class HeightMapGen : MonoBehaviour
             display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap, heightCurve));
         else if (drawMode == DrawMode.ColourMap)
             display.DrawTexture(TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
-        //else if (drawMode == DrawMode.BiomeMap)
-        //    display.DrawTexture(TextureGen.TextureFromColorMap(biomeMap, mapChunkSize, mapChunkSize));
-        else if (drawMode == DrawMode.HeatMap)
-            display.DrawTexture(TextureGen.TextureFromHeightMap(GenerateHeatMap()));
         else if (drawMode == DrawMode.HumidityMap)
-            display.DrawTexture(TextureGen.TextureFromHeightMap(GenerateHumidityMap()));
-        else if (drawMode == DrawMode.HeightMask)
-            display.DrawTexture(TextureGen.TextureFromHeightMap(GenerateHeightMask()));
-        else if (drawMode == DrawMode.Mesh)
-            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
+            display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap, moistureCurve));
+        display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
                 TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
-    }
-    
-    public float[,] GenerateHeatMap()
-    {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
-            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
-            octaves, persistance, lacunarity, seed);
-        return noiseMap;
-    }
-
-    public float[,] GenerateHumidityMap()
-    {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
-            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
-            octaves, persistance, lacunarity, seed);
-        return noiseMap;
-    }
-    
-    public float[,] GenerateHeightMask()
-    {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
-            octaveOffset, usePositionAsOffset ? new Vector2(transform.position.x, transform.position.z) : positionOffset, 
-            octaves, persistance, lacunarity, seed);
-        return noiseMap;
     }
 
     struct MapThreadInfo<T>
