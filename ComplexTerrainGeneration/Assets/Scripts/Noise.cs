@@ -37,7 +37,7 @@ public static class Noise
                 // Loop through 
                 for (int i = 0; i < octaves; i++)
                 {
-                    float sampleX = (x + symmetryOffsetX + offest.y) / scale * frequency + octaveOffsets[i].x;
+                    float sampleX = (x + symmetryOffsetX - offest.y) / scale * frequency + octaveOffsets[i].x;
                     float sampleY = (y + symmetryOffsetY + offest.x) / scale * frequency + octaveOffsets[i].y;
 
                     float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);

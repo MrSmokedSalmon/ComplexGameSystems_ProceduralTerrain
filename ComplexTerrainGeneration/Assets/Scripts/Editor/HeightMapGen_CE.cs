@@ -17,6 +17,7 @@ namespace Editor
             {
                 gen.DrawMapInEditor();
             }
+            
         }
     }
 }

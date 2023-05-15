@@ -26,7 +26,7 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Start()
     {
-        mapGen = FindObjectOfType<HeightMapGen>();
+        mapGen = GetComponent<HeightMapGen>();
         maxViewDist = detailLevels[detailLevels.Length - 1].visibleDistThreshold;
         chunkSize = HeightMapGen.mapChunkSize - 1;
         chunksVisibleInViewDist = Mathf.RoundToInt(maxViewDist / chunkSize);
@@ -100,13 +100,15 @@ public class EndlessTerrain : MonoBehaviour
                 lodMeshes[i] = new LODMesh(detailLevels[i].lod);
             
             
-            mapGen.RequestMapData(OnMapDataRecieved);
+            mapGen.RequestMapData(OnMapDataRecieved, position);
         }
 
         void OnMapDataRecieved(MapData _mapData)
         {
             mapData = _mapData;
             mapDataRecieved = true;
+
+            meshRenderer.material.mainTexture = TextureGen.TextureFromHeightMap(_mapData.heightMap);
         }
 
         public void UpdateChunk()

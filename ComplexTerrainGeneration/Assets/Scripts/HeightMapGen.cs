@@ -15,7 +15,8 @@ public class HeightMapGen : MonoBehaviour
         HeatMap,
         HumidityMap,
         HeightMask,
-        Mesh
+        Mesh,
+        Continent
     };
 
     public DrawMode drawMode;
@@ -42,10 +43,8 @@ public class HeightMapGen : MonoBehaviour
     private Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
     private Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 
-    public void RequestMapData(Action<MapData> callback)
+    public void RequestMapData(Action<MapData> callback, Vector2 position)
     {
-        Vector2 position = new Vector2(transform.position.x, transform.position.z);
-        
         ThreadStart threadStart = delegate
         {
             MapDataThread(callback, position);
@@ -142,6 +141,8 @@ public class HeightMapGen : MonoBehaviour
         
         if (drawMode == DrawMode.NosieMap)
             display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap));
+        else if (drawMode == DrawMode.Continent)
+            display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap, heightCurve));
         else if (drawMode == DrawMode.ColourMap)
             display.DrawTexture(TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
         //else if (drawMode == DrawMode.BiomeMap)
