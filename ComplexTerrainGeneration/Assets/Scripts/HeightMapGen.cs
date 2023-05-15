@@ -9,14 +9,12 @@ public class HeightMapGen : MonoBehaviour
 {
     public enum DrawMode
     {
-        NosieMap,
+        NoiseMap,
         ColourMap,
-        BiomeMap,
         HeatMap,
         HumidityMap,
         HeightMask,
-        Mesh,
-        Continent
+        Mesh
     };
 
     public DrawMode drawMode;
@@ -33,7 +31,7 @@ public class HeightMapGen : MonoBehaviour
     
     public float heightMulti;
     public AnimationCurve heightCurve;
-    
+
     public bool autoUpdate;
     public bool usePositionAsOffset;
 
@@ -103,18 +101,17 @@ public class HeightMapGen : MonoBehaviour
 
     private MapData GenerateMapData(Vector2 _position)
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
+        float[,] heightMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
             octaves, persistance, lacunarity, seed);
-        
+
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
-        Color[] biomeMap = new Color[mapChunkSize * mapChunkSize];
         
         for (int y = 0; y < mapChunkSize; y++)
             for (int x = 0; x < mapChunkSize; x++)
             {
                 //noiseMap[x, y] *= heightMask[x, y];
-                float currentHeight = noiseMap[x, y];
+                float currentHeight = heightMap[x, y];
 
                 for (int i = 0; i < regions.Length; i++)
                     if (currentHeight <= regions[i].height)
@@ -122,15 +119,9 @@ public class HeightMapGen : MonoBehaviour
                         colorMap[y * mapChunkSize + x] = regions[i].color;
                         break;
                     }
-                for (int i = 0; i < biomes.Length; i++)
-                    if (currentHeight <= biomes[i].value)
-                    {
-                        biomeMap[y * mapChunkSize + x] = biomes[i].color;
-                        break;
-                    }
             }
 
-        return new MapData(noiseMap, colorMap);
+        return new MapData(heightMap, colorMap);
     }
 
     public void DrawMapInEditor()
@@ -139,9 +130,7 @@ public class HeightMapGen : MonoBehaviour
         
         MapDisplay display = GetComponent<MapDisplay>();
         
-        if (drawMode == DrawMode.NosieMap)
-            display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap));
-        else if (drawMode == DrawMode.Continent)
+        if (drawMode == DrawMode.NoiseMap)
             display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap, heightCurve));
         else if (drawMode == DrawMode.ColourMap)
             display.DrawTexture(TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));

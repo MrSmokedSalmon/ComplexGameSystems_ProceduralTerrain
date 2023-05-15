@@ -20,6 +20,7 @@ public static class MeshGen
         for (int y = 0; y < height; y += simplificationIncrement)
             for (int x = 0; x < width; x += simplificationIncrement)
             {
+                
                 meshData.verticies[vertexIndex] = new Vector3(
                     topLeftX + x, 
                     heightCurve.Evaluate(heightMap[x,y]) * scale, 

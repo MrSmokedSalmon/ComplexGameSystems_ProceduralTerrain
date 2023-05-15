@@ -108,7 +108,7 @@ public class EndlessTerrain : MonoBehaviour
             mapData = _mapData;
             mapDataRecieved = true;
 
-            meshRenderer.material.mainTexture = TextureGen.TextureFromHeightMap(_mapData.heightMap);
+            meshRenderer.material.mainTexture = TextureGen.TextureFromColorMap(_mapData.colorMap, (int)bounds.size.x + 1, (int)bounds.size.y + 1);
         }
 
         public void UpdateChunk()

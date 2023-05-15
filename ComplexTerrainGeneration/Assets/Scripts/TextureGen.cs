@@ -44,4 +44,5 @@ public static class TextureGen
 
         return TextureFromColorMap(colorMap, width, height);
     }
+
 }
