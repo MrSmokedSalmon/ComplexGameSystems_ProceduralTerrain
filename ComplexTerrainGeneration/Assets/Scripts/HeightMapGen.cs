@@ -9,11 +9,12 @@ public class HeightMapGen : MonoBehaviour
 {
     public enum DrawMode
     {
-        NoiseMap,
         ColourMap,
         HeatMap,
         HumidityMap,
-        HeightMask,
+        DetailMap,
+        ContinentMap,
+        HeightMap,
         Continent,
         Details,
         Final
@@ -33,6 +34,7 @@ public class HeightMapGen : MonoBehaviour
     
     public float heightMulti;
     public AnimationCurve heightCurve;
+    public AnimationCurve detailCurve;
     public AnimationCurve continentCurve;
     public AnimationCurve moistureCurve;
 
@@ -79,11 +81,11 @@ public class HeightMapGen : MonoBehaviour
 
     private void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback, DrawMode dMode)
     {
-        MeshData meshData = MeshGen.GenerateTerrainMesh(mapData.finalMap, heightMulti, heightCurve, levelOfDetailEditor);
+        MeshData meshData = MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor);
         if (dMode == DrawMode.Continent)
             meshData = MeshGen.GenerateTerrainMesh(mapData.continentMap, 10, continentCurve, levelOfDetailEditor);
         else if (dMode == DrawMode.Details)
-            meshData = MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor);
+            meshData = MeshGen.GenerateTerrainMesh(mapData.detailMap, heightMulti, heightCurve, levelOfDetailEditor);
         
         lock (meshDataThreadInfoQueue)
         {
@@ -115,7 +117,7 @@ public class HeightMapGen : MonoBehaviour
     {
         float[,] heightMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
-            octaves, persistance, lacunarity, seed);
+            octaves, persistance, lacunarity, seed, detailCurve);
         float[,] continentMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale * 10f, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
             4, persistance, lacunarity, seed, continentCurve);
@@ -193,21 +195,29 @@ public class HeightMapGen : MonoBehaviour
         
         MapDisplay display = GetComponent<MapDisplay>();
         
-        if (drawMode == DrawMode.NoiseMap)
-            display.DrawTexture(TextureGen.TextureFromHeightMap(mapData.heightMap, heightCurve));
-        else if (drawMode == DrawMode.ColourMap)
+        
+        if (drawMode == DrawMode.ColourMap)
             display.DrawTexture(TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
         else if (drawMode == DrawMode.HumidityMap)
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
                 TextureGen.TextureFromHeightMap(mapData.heightMap, moistureCurve));
-        else if (drawMode == DrawMode.Continent)
+        else if (drawMode == DrawMode.DetailMap)
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.detailMap, heightMulti, heightCurve, levelOfDetailEditor),
+                TextureGen.TextureFromHeightMap(mapData.detailMap));
+        else if (drawMode == DrawMode.ContinentMap)
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.continentMap, 1, continentCurve, levelOfDetailEditor),
                 TextureGen.TextureFromHeightMap(mapData.continentMap));
-        else if (drawMode == DrawMode.Details)
+        else if (drawMode == DrawMode.HeightMap)
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
+                TextureGen.TextureFromHeightMap(mapData.heightMap));
+        else if (drawMode == DrawMode.Continent)
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.continentMap, 1, continentCurve, levelOfDetailEditor),
+                TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
+        else if (drawMode == DrawMode.Details)
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.detailMap, heightMulti, heightCurve, levelOfDetailEditor),
                 TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
         else if (drawMode == DrawMode.Final)
-            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.finalMap, heightMulti, heightCurve, levelOfDetailEditor),
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
                 TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
     }
 
@@ -240,16 +250,16 @@ public struct BiomeTypes
 
 public struct MapData
 {
-    public readonly float[,] heightMap;
+    public readonly float[,] detailMap;
     public readonly float[,] continentMap;
-    public readonly float[,] finalMap;
+    public readonly float[,] heightMap;
     public readonly Color[] colorMap;
 
-    public MapData(float[,] _heightMap, float[,] _continentMap, float[,] _finalMap, Color[] _colorMap)
+    public MapData(float[,] _detailMap, float[,] _continentMap, float[,] _heightMap, Color[] _colorMap)
     {
-        heightMap = _heightMap;
+        detailMap = _detailMap;
         continentMap = _continentMap;
-        finalMap = _finalMap;
+        heightMap = _heightMap;
         colorMap = _colorMap;
     }
 }

@@ -77,7 +77,7 @@ public static class Noise
         for (int y = 0; y < mapHeight; y++)
         for (int x = 0; x < mapWidth; x++)
         {
-            // Intiating noise values for this coordinate
+            // Initiating noise values for this coordinate
             float amplitude = 1.0f;
             float frequency = 1.0f;
             float noiseHeight = 0;
