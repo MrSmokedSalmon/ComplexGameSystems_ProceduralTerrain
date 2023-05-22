@@ -49,13 +49,13 @@ public class HeightMapGen : MonoBehaviour
 
     public void RequestMapData(Action<MapData> callback, Vector2 position)
     {
-        MapDataThread(callback, position);
-        //ThreadStart threadStart = delegate
-        //{
-        //    MapDataThread(callback, position);
-        //};
+        //MapDataThread(callback, position);
+        ThreadStart threadStart = delegate
+        {
+            MapDataThread(callback, position);
+        };
 
-        //new Thread(threadStart).Start();
+        new Thread(threadStart).Start();
     }
 
     private void MapDataThread(Action<MapData> callback, Vector2 position)
@@ -118,9 +118,9 @@ public class HeightMapGen : MonoBehaviour
         float[,] heightMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
             octaves, persistance, lacunarity, seed, detailCurve);
-        float[,] continentMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale * 10f, 
+        float[,] continentMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale * 3.0f, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
-            4, persistance, lacunarity, seed, continentCurve);
+            6, persistance, lacunarity, seed, continentCurve);
         float[,] finalMap = CombineNoiseMaps(heightMap, continentMap, 4);
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
