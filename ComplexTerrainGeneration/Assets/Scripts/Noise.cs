@@ -57,7 +57,7 @@ public static class Noise
     }
     
     public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float scale, Vector2 octaveOffset, 
-        Vector2 offest, int octaves, float persistance, float lacunarity, int seed, AnimationCurve _curve)
+        Vector2 offest, int octaves, float persistance, float lacunarity, int seed, AnimationCurve _curve, float curveOffset)
     {
         float[,] noiseMap = new float[mapWidth, mapHeight];
         AnimationCurve curve = new AnimationCurve(_curve.keys);
@@ -99,7 +99,7 @@ public static class Noise
                 frequency *= lacunarity;
             }
 
-            float val = curve.Evaluate(noiseHeight);
+            float val = curve.Evaluate(noiseHeight + curveOffset / 100f);
             noiseMap[y, x] = val;
         }
 

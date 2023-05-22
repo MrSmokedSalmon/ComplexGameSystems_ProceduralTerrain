@@ -31,6 +31,7 @@ public class HeightMapGen : MonoBehaviour
     public int seed;
     public Vector2 octaveOffset;
     public Vector2 positionOffset;
+    public float continentSize = 0.0f;
     
     public float heightMulti;
     public AnimationCurve heightCurve;
@@ -81,12 +82,14 @@ public class HeightMapGen : MonoBehaviour
 
     private void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback, DrawMode dMode)
     {
-        MeshData meshData = MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor);
-        if (dMode == DrawMode.Continent)
-            meshData = MeshGen.GenerateTerrainMesh(mapData.continentMap, 10, continentCurve, levelOfDetailEditor);
-        else if (dMode == DrawMode.Details)
-            meshData = MeshGen.GenerateTerrainMesh(mapData.detailMap, heightMulti, heightCurve, levelOfDetailEditor);
+        MeshData meshData;
         
+        if (dMode == DrawMode.Continent)
+            meshData = MeshGen.GenerateTerrainMesh(mapData.continentMap, 10, continentCurve, lod);
+        else if (dMode == DrawMode.Details)
+            meshData = MeshGen.GenerateTerrainMesh(mapData.detailMap, heightMulti, heightCurve, lod);
+        else
+            meshData = MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, lod);
         lock (meshDataThreadInfoQueue)
         {
             meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshData>(callback, meshData));
@@ -117,10 +120,10 @@ public class HeightMapGen : MonoBehaviour
     {
         float[,] heightMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
-            octaves, persistance, lacunarity, seed, detailCurve);
-        float[,] continentMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale * 3.0f, 
+            octaves, persistance, lacunarity, seed, detailCurve, 0f);
+        float[,] continentMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale * 10.0f, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
-            6, persistance, lacunarity, seed, continentCurve);
+            6, persistance, lacunarity, seed, continentCurve, continentSize);
         float[,] finalMap = CombineNoiseMaps(heightMap, continentMap, 4);
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
