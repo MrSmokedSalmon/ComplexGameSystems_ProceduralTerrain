@@ -22,7 +22,7 @@ public class HeightMapGen : MonoBehaviour
 
     public DrawMode drawMode;
 
-    public const int mapChunkSize = 129;
+    public const int mapChunkSize = 130;
     [Range(0,6)]public int levelOfDetailEditor;
     [Min(0.001f)]public float scale;
     [Min(1)]public int octaves;
