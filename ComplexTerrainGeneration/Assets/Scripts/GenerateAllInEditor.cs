@@ -20,7 +20,7 @@ public class GenerateAllInEditor : MonoBehaviour
 		foreach (HeightMapGen chunk in editorChunks)
 		{
 			Vector3 position = chunk.gameObject.transform.position;
-			vegeSystem.Vegetate(chunk.chunkData.heightMap, chunk.heightMulti, position, 1f,800);
+			vegeSystem.Vegetate(chunk.chunkData.heightMap, chunk.heightMulti, position);
 		}
 	}
 
