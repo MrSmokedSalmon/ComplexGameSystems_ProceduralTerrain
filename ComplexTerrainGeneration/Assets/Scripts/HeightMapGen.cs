@@ -39,9 +39,13 @@ public class HeightMapGen : MonoBehaviour
     public AnimationCurve continentCurve;
     public AnimationCurve moistureCurve;
 
+    public VegetationSystem vegeSystem;
+    
     public bool autoUpdate;
     public bool usePositionAsOffset;
 
+    public MapData chunkData;
+    
     public TerrainTypes[] regions;
     public BiomeTypes[] biomes;
 
@@ -124,15 +128,14 @@ public class HeightMapGen : MonoBehaviour
         float[,] continentMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, scale * 10.0f, 
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
             6, persistance, lacunarity, seed, continentCurve, continentSize);
-        float[,] finalMap = CombineNoiseMaps(heightMap, continentMap, 4);
+        float[,] finalMap = CombineNoiseMaps(heightMap, continentMap, 4, heightCurve);
         
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
         
         for (int y = 0; y < mapChunkSize; y++)
             for (int x = 0; x < mapChunkSize; x++)
             {
-                //noiseMap[x, y] *= heightMask[x, y];
-                float currentHeight = finalMap[x, y];
+                float currentHeight = finalMap[y,x];
 
                 for (int i = 0; i < regions.Length; i++)
                     if (currentHeight <= regions[i].height)
@@ -142,7 +145,8 @@ public class HeightMapGen : MonoBehaviour
                     }
             }
 
-        return new MapData(heightMap, continentMap, finalMap, colorMap);
+        chunkData = new MapData(heightMap, continentMap, finalMap, colorMap);
+        return chunkData;
     }
 
     private float[,] CombineNoiseMaps(float[,] map1, float[,] map2, uint opperation)
@@ -164,24 +168,24 @@ public class HeightMapGen : MonoBehaviour
                 switch (opperation)
                 {
                     case 0:
-                        newNoise[x, y] = map1[x, y] + map2[x, y];
+                        newNoise[y,x] = map1[y,x] + map2[y,x];
                         break;
                     case 1:
-                        newNoise[x, y] = map1[x, y] - map2[x, y];
+                        newNoise[y,x] = map1[y,x] - map2[y,x];
                         break;
                     case 2:
-                        newNoise[x, y] = map1[x, y] * map2[x, y];
+                        newNoise[y,x] = map1[y,x] * map2[y,x];
                         break;
                     case 3:
-                        newNoise[x, y] = map1[x, y] / map2[x, y];
+                        newNoise[y,x] = map1[y,x] / map2[y,x];
                         break;
                     case 4:
-                        value = (map1[x, y] * map2[x, y] + Mathf.Abs(map1[x, y] * map2[x, y])) / 2f;
-                        newNoise[x, y] = value + (0.006f * map2[x,y]);
+                        value = (map1[y,x] * map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
+                        newNoise[y,x] = value + (0.006f * map2[y,x]);
                         break;
                     case 5:
-                        value = (map1[x, y] / map2[x, y] + Mathf.Abs(map1[x, y] * map2[x, y])) / 2f;
-                        newNoise[x, y] = value;
+                        value = (map1[y,x] / map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
+                        newNoise[y,x] = value;
                         break;
                     default:
                         break;
@@ -192,6 +196,55 @@ public class HeightMapGen : MonoBehaviour
         return newNoise;
     }
 
+    private float[,] CombineNoiseMaps(float[,] map1, float[,] map2, uint opperation, AnimationCurve _curve)
+    {
+        AnimationCurve curve = new AnimationCurve(_curve.keys);
+        
+        int width = map1.GetLength(0);
+        int height = map1.GetLength(1);
+        
+        if (width != map2.GetLength(0) ||
+            height != map2.GetLength(1))
+            return null;
+
+        float[,] newNoise = new float[width, height];
+        
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                float value = 0f;
+                switch (opperation)
+                {
+                    case 0:
+                        newNoise[y,x] = curve.Evaluate(map1[y,x] + map2[y,x]);
+                        break;
+                    case 1:
+                        newNoise[y,x] = curve.Evaluate(map1[y,x] - map2[y,x]);
+                        break;
+                    case 2:
+                        newNoise[y,x] = curve.Evaluate(map1[y,x] * map2[y,x]);
+                        break;
+                    case 3:
+                        newNoise[y,x] = curve.Evaluate(map1[y,x] / map2[y,x]);
+                        break;
+                    case 4:
+                        value = (map1[y,x] * map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
+                        newNoise[y,x] = curve.Evaluate(value + (0.006f * map2[y,x]));
+                        break;
+                    case 5:
+                        value = (map1[y,x] / map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
+                        newNoise[y,x] = curve.Evaluate(value);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        return newNoise;
+    }
+    
     public void DrawMapInEditor()
     {
         MapData mapData = GenerateMapData(new Vector2(transform.position.x, transform.position.z));
@@ -211,7 +264,7 @@ public class HeightMapGen : MonoBehaviour
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.continentMap, 1, continentCurve, levelOfDetailEditor),
                 TextureGen.TextureFromHeightMap(mapData.continentMap));
         else if (drawMode == DrawMode.HeightMap)
-            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, levelOfDetailEditor),
                 TextureGen.TextureFromHeightMap(mapData.heightMap));
         else if (drawMode == DrawMode.Continent)
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.continentMap, 1, continentCurve, levelOfDetailEditor),
@@ -220,8 +273,10 @@ public class HeightMapGen : MonoBehaviour
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.detailMap, heightMulti, heightCurve, levelOfDetailEditor),
                 TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
         else if (drawMode == DrawMode.Final)
-            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, heightCurve, levelOfDetailEditor),
+            display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, levelOfDetailEditor),
                 TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
+        
+        //vegeSystem.Vegetate(mapData.heightMap, heightMulti, transform.position, 10);
     }
 
     struct MapThreadInfo<T>

@@ -16,6 +16,15 @@ namespace Editor
 			{
 				gen.GenerateAll();
 			}
+			
+			if (GUILayout.Button("Generate Vegetation"))
+			{
+				gen.GenVegetation();
+			}
+			if (GUILayout.Button("Clear Vegetation"))
+			{
+				gen.ClearVegetation();
+			}
             
 		}
 	}
