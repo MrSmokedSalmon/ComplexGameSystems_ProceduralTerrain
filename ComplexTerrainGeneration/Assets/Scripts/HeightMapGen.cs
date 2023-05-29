@@ -22,7 +22,7 @@ public class HeightMapGen : MonoBehaviour
 
     public DrawMode drawMode;
 
-    public const int mapChunkSize = 130;
+    public const int mapChunkSize = 129;
     [Range(0,6)]public int levelOfDetailEditor;
     [Min(0.001f)]public float scale;
     [Min(1)]public int octaves;
@@ -39,8 +39,6 @@ public class HeightMapGen : MonoBehaviour
     public AnimationCurve continentCurve;
     public AnimationCurve moistureCurve;
 
-    public VegetationSystem vegeSystem;
-    
     public bool autoUpdate;
     public bool usePositionAsOffset;
 
@@ -66,6 +64,9 @@ public class HeightMapGen : MonoBehaviour
     private void MapDataThread(Action<MapData> callback, Vector2 position)
     {
         MapData mapData = GenerateMapData(position);
+        
+        mapData.vegetation = VegetationSystem.GenerateChunkPlants(mapChunkSize - 1, mapChunkSize - 1, mapData.heightMap, mapData.position, heightMulti);
+
         lock (mapDataThreadInfoQueue)
         {
             mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
@@ -129,7 +130,7 @@ public class HeightMapGen : MonoBehaviour
             octaveOffset, usePositionAsOffset ? _position : positionOffset, 
             6, persistance, lacunarity, seed, continentCurve, continentSize);
         float[,] finalMap = CombineNoiseMaps(heightMap, continentMap, 4, heightCurve);
-        
+
         Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
         
         for (int y = 0; y < mapChunkSize; y++)
@@ -145,10 +146,11 @@ public class HeightMapGen : MonoBehaviour
                     }
             }
 
-        chunkData = new MapData(heightMap, continentMap, finalMap, colorMap);
+        chunkData = new MapData(heightMap, continentMap, finalMap, colorMap, new Vector3(_position.x, 0, _position.y));
         return chunkData;
     }
 
+    // potentially unused
     private float[,] CombineNoiseMaps(float[,] map1, float[,] map2, uint opperation)
     {
         int width = map1.GetLength(0);
@@ -168,22 +170,28 @@ public class HeightMapGen : MonoBehaviour
                 switch (opperation)
                 {
                     case 0:
+                        // Addition opperation
                         newNoise[y,x] = map1[y,x] + map2[y,x];
                         break;
                     case 1:
+                        // Subtraction opperation
                         newNoise[y,x] = map1[y,x] - map2[y,x];
                         break;
                     case 2:
+                        // Multiply opperation
                         newNoise[y,x] = map1[y,x] * map2[y,x];
                         break;
                     case 3:
+                        // Divide opperation
                         newNoise[y,x] = map1[y,x] / map2[y,x];
                         break;
                     case 4:
+                        // Multiply Add opperation
                         value = (map1[y,x] * map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
                         newNoise[y,x] = value + (0.006f * map2[y,x]);
                         break;
                     case 5:
+                        // Divide Add opperation
                         value = (map1[y,x] / map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
                         newNoise[y,x] = value;
                         break;
@@ -217,22 +225,28 @@ public class HeightMapGen : MonoBehaviour
                 switch (opperation)
                 {
                     case 0:
+                        // Add
                         newNoise[y,x] = curve.Evaluate(map1[y,x] + map2[y,x]);
                         break;
                     case 1:
+                        // Subtract
                         newNoise[y,x] = curve.Evaluate(map1[y,x] - map2[y,x]);
                         break;
                     case 2:
+                        // Multiply
                         newNoise[y,x] = curve.Evaluate(map1[y,x] * map2[y,x]);
                         break;
                     case 3:
+                        // Divide
                         newNoise[y,x] = curve.Evaluate(map1[y,x] / map2[y,x]);
                         break;
                     case 4:
+                        // Multiply Add
                         value = (map1[y,x] * map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
                         newNoise[y,x] = curve.Evaluate(value + (0.006f * map2[y,x]));
                         break;
                     case 5:
+                        // Divide Add
                         value = (map1[y,x] / map2[y,x] + Mathf.Abs(map1[y,x] * map2[y,x])) / 2f;
                         newNoise[y,x] = curve.Evaluate(value);
                         break;
@@ -275,8 +289,6 @@ public class HeightMapGen : MonoBehaviour
         else if (drawMode == DrawMode.Final)
             display.DrawMesh(MeshGen.GenerateTerrainMesh(mapData.heightMap, heightMulti, levelOfDetailEditor),
                 TextureGen.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
-        
-        //vegeSystem.Vegetate(mapData.heightMap, heightMulti, transform.position, 10);
     }
 
     struct MapThreadInfo<T>
@@ -312,12 +324,19 @@ public struct MapData
     public readonly float[,] continentMap;
     public readonly float[,] heightMap;
     public readonly Color[] colorMap;
+    public readonly Vector3 position;
 
-    public MapData(float[,] _detailMap, float[,] _continentMap, float[,] _heightMap, Color[] _colorMap)
+    public PlantData[] vegetation;
+
+    public MapData(float[,] _detailMap, float[,] _continentMap, float[,] _heightMap, Color[] _colorMap, Vector3 _position)
     {
         detailMap = _detailMap;
         continentMap = _continentMap;
         heightMap = _heightMap;
         colorMap = _colorMap;
+
+        position = _position;
+
+        vegetation = Array.Empty<PlantData>();
     }
 }

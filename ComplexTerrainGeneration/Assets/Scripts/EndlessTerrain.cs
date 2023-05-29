@@ -9,10 +9,13 @@ public class EndlessTerrain : MonoBehaviour
     private const float sqrMoveThresholdForCHUpdate = moveThresholdForCHUpdate * moveThresholdForCHUpdate;
     
     public LODInfo[] detailLevels;
+    [Min(1f)] public float viewDist;
+    public static float viewDistStatic;
     public static float maxViewDist;
     
     public Transform viewer;
     public Material mapMaterial;
+
     
     public static Vector2 viewerPos;
     private Vector2 viewerPosOld;
@@ -27,7 +30,12 @@ public class EndlessTerrain : MonoBehaviour
     private void Start()
     {
         mapGen = GetComponent<HeightMapGen>();
+        
+        // Sets the view distance, lower values equals less chunks loaded at a time
+        viewDistStatic = viewDist;
         maxViewDist = detailLevels[detailLevels.Length - 1].visibleDistThreshold;
+        viewDistStatic = viewDistStatic > maxViewDist ? maxViewDist : viewDistStatic;
+        
         chunkSize = HeightMapGen.mapChunkSize - 1;
         chunksVisibleInViewDist = Mathf.RoundToInt(maxViewDist / chunkSize);
     }
@@ -75,8 +83,11 @@ public class EndlessTerrain : MonoBehaviour
         private LODInfo[] detailLevels;
         private LODMesh[] lodMeshes;
 
+        private List<GameObject> vegetation;
+
         private MapData mapData;
         private bool mapDataRecieved;
+        private bool plantsSpawned;
 
         private int prevLODIndex = -1;
         
@@ -98,8 +109,7 @@ public class EndlessTerrain : MonoBehaviour
             lodMeshes = new LODMesh[detailLevels.Length];
             for (int i = 0; i < detailLevels.Length; i++)
                 lodMeshes[i] = new LODMesh(detailLevels[i].lod);
-            
-            
+
             mapGen.RequestMapData(OnMapDataRecieved, position);
         }
 
@@ -117,10 +127,17 @@ public class EndlessTerrain : MonoBehaviour
             if (mapDataRecieved)
             {
                 float viewerDistFromNearEdge = Mathf.Sqrt(bounds.SqrDistance(viewerPos));
-                bool visible = viewerDistFromNearEdge <= maxViewDist;
+                bool visible = viewerDistFromNearEdge <= viewDistStatic;
 
                 if (visible)
                 {
+                    if (!plantsSpawned)
+                    {
+                        plantsSpawned = true;
+                        SpawnPlants();
+                        Debug.Log("Spawn plants");
+                    }
+                    
                     int lodIndex = 0;
 
                     for (int i = 0; i < detailLevels.Length - 1; i++)
@@ -143,9 +160,29 @@ public class EndlessTerrain : MonoBehaviour
                             lodMesh.RequestMesh(mapData);
                     }
                 }
+                else if (plantsSpawned)
+                {
+                    plantsSpawned = false;
+                    DestroyPlants();
+                    Debug.Log("Destroy plants");
+                }
 
                 SetVisible(visible);
             }
+        }
+
+        private void DestroyPlants()
+        {
+            foreach (GameObject plant in vegetation)
+            {
+                Destroy(plant);
+            }
+            vegetation.Clear();
+        }
+
+        private void SpawnPlants()
+        {
+            vegetation = VegetationSystem.SpawnPlants(mapData.vegetation);
         }
 
         public void SetVisible(bool visible)

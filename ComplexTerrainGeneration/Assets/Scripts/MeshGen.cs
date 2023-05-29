@@ -82,8 +82,8 @@ public class MeshData
     public int[] triangles;
     public Vector2[] uvs;
 
-    private int triangleIndex;    
-    
+    private int triangleIndex;
+
     public MeshData(int meshWidth, int meshHeight)
     {
         verticies = new Vector3[meshWidth * meshHeight];
@@ -93,6 +93,9 @@ public class MeshData
 
     public void AddTriangle(int a, int b, int c)
     {
+        int h = 1;
+        if (triangleIndex >= triangles.Length)
+            h++;
         triangles[triangleIndex] = a;
         triangles[triangleIndex + 1] = b;
         triangles[triangleIndex + 2] = c;
