@@ -29,6 +29,9 @@ public class VegetationSystem : MonoBehaviour
     {
         if (instance == null)
             instance = this;
+        
+        maxPlantHeight /= 100;
+        minPlantHeight /= 100;
     }
     
 
@@ -86,7 +89,8 @@ public class VegetationSystem : MonoBehaviour
         // Selects the type of plant to spawn based on the height and a random
         // offset to give a smooth blend between different forest types
         float plantType = height * (instance.maxPlantHeight - instance.minPlantHeight);
-        plantType += (float)rng.NextDouble() * (instance.distributionRandomness - (-instance.distributionRandomness)) + (-instance.distributionRandomness);
+        plantType = map(plantType, instance.minPlantHeight, instance.maxPlantHeight, 0f, 1f);
+        plantType += (float)rng.NextDouble() * instance.distributionRandomness;
         
         int plantTypeFinal = (int)treeDistCurve.Evaluate(plantType);
 
@@ -96,6 +100,11 @@ public class VegetationSystem : MonoBehaviour
         newPlant.plantType = plantTypeFinal;
 
         return newPlant;
+    }
+    
+    // found at: https://forum.unity.com/threads/re-map-a-number-from-one-range-to-another.119437/
+    public static float map (float value, float from1, float to1, float from2, float to2) {
+        return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
     }
 
     public static PlantData[] GenerateChunkPlants(int width, int height, float[,] heightMap, Vector3 chunkPosition, float heightScalar, float plantBounds = 0f)
@@ -111,6 +120,9 @@ public class VegetationSystem : MonoBehaviour
         {
             for (int y = 0; y < height; y += instance.targetDensity)
             {
+                if (heightMap[height - y, x] > instance.maxPlantHeight || heightMap[height - y, x] < instance.minPlantHeight)
+                    continue;
+                
                 // Generates a new plant
                 PlantData plant = GeneratePlant(x - (width / 2), y - (height / 2), heightMap[height - y, x],
                     chunkPosition, heightScalar, plantBounds, seedRNG.Next(-999999, 999999));
