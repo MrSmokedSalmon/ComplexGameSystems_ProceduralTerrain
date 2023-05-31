@@ -18,7 +18,7 @@ public class TutorialHelicopterController : MonoBehaviour
 	
 	[SerializeField] private float throttleMax = 500f;
 	[SerializeField] private float throttleAmount = 25f;
-	private float throttle;
+	[SerializeField] private float throttle;
 
 	private float roll;
 	private float pitch;
@@ -46,6 +46,9 @@ public class TutorialHelicopterController : MonoBehaviour
 	private void Update()
 	{
 		HandleInputs();
+		
+		ui.UpdateIndicators(transform.localRotation.eulerAngles.x, transform.localRotation.eulerAngles.z, 
+			transform.localRotation.eulerAngles.y, throttle / throttleMax, transform.position.y);
 	}
 
 	private void FixedUpdate()
@@ -55,8 +58,6 @@ public class TutorialHelicopterController : MonoBehaviour
 		rigidbody.AddTorque(transform.right * pitch * responsiveness);
 		rigidbody.AddTorque(transform.forward * roll * responsiveness);
 		rigidbody.AddTorque(transform.up * yaw * responsiveness);
-		
-		ui.UpdateIndicators(transform.localRotation.eulerAngles.x, transform.localRotation.eulerAngles.z);
 	}
 
 	private void HandleInputs()
