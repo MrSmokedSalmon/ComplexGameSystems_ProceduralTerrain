@@ -10,6 +10,10 @@ public class TutorialHelicopterController : MonoBehaviour
 	[SerializeField] private InputActionReference yawAction;
 	[SerializeField] private InputActionReference throttleAction;
 
+	[SerializeField] private Transform rotorTransform;
+	[SerializeField] private float rotorSpeed;
+	[SerializeField] private AnimationCurve rotorSpeedEval;
+
 	[SerializeField] private UI ui;
 	
 	private Rigidbody rigidbody;
@@ -53,6 +57,8 @@ public class TutorialHelicopterController : MonoBehaviour
 
 	private void FixedUpdate()
 	{
+		rotorTransform.Rotate(0, rotorSpeedEval.Evaluate(throttle / throttleMax) * rotorSpeed, 0);
+		
 		rigidbody.AddForce(transform.up * throttle, ForceMode.Impulse);
 		
 		rigidbody.AddTorque(transform.forward * pitch * responsiveness);
