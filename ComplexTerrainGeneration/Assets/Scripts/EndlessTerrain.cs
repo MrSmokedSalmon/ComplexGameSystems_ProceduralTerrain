@@ -9,6 +9,13 @@ public class EndlessTerrain : MonoBehaviour
     private const float sqrMoveThresholdForCHUpdate = moveThresholdForCHUpdate * moveThresholdForCHUpdate;
     
     public LODInfo[] detailLevels;
+
+    public static int chunksLoadedData;
+    public static int chunksLoadedMesh;
+    public int chunksToLoad;
+
+    [SerializeField] private float dataTime;
+    [SerializeField] private float meshTime;
     
     [Min(0f)] public float plantViewDist;
     [Min(1f)] public float viewDist;
@@ -52,6 +59,11 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Update()
     {
+        if (chunksLoadedData < chunksToLoad)
+            dataTime += Time.deltaTime;
+        if (chunksLoadedMesh < chunksToLoad)
+            meshTime += Time.deltaTime;
+        
         viewerPos = new Vector2(viewer.position.x, viewer.position.z);
         UpdateVisibleChunks();
     }
@@ -157,6 +169,8 @@ public class EndlessTerrain : MonoBehaviour
             mapData = _mapData;
             mapDataRecieved = true;
 
+            chunksLoadedData++;
+            
             meshRenderer.material.mainTexture = TextureGen.TextureFromColorMap(_mapData.colorMap, (int)bounds.size.x + 1, (int)bounds.size.y + 1);
             //meshRenderer.material.mainTexture = TextureGen.TextureFromHeightMap(mapData.continentMap);
         }
@@ -266,6 +280,7 @@ public class EndlessTerrain : MonoBehaviour
 
         void OnMeshDataRecieved(MeshData meshData)
         {
+            chunksLoadedMesh++;
             mesh = meshData.CreateMesh();
             hasMesh = true;
         }
